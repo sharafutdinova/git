@@ -15,20 +15,24 @@ namespace WindowsFormsApplication3
 {
     public partial class Form1 : Form
     {
+        public IReadOnlyList<Repository> repositories;
+        public GitHubClient client;
+
         public Form1()
         {
             InitializeComponent();
+            repositories = new List<Repository>();
         }
 
         private async void button1_Click(object sender, EventArgs e)
         {
             var ghe = new Uri("https://github.com/");
-            var client = new GitHubClient(new ProductHeaderValue(textBox1.Text), ghe);
+            client = new GitHubClient(new ProductHeaderValue(textBox1.Text), ghe);
 
-            var repos = await client.Repository.GetAllForUser(textBox1.Text);
+            repositories = await client.Repository.GetAllForUser(textBox1.Text);
             
             DateTimeOffset data;
-            foreach (var repository in repos)
+            foreach (var repository in repositories)
             {
                 data = repository.UpdatedAt;
                 listBox1.Items.Add("Name " + repository.Name);
@@ -44,14 +48,33 @@ namespace WindowsFormsApplication3
             var client = new GitHubClient(new ProductHeaderValue(textBox1.Text), ghe);
 
             var user = await client.User.Get(textBox1.Text);
-            //MessageBox.Show(user.Name + " has " + user.PublicRepos + " public repositories - go check out their profile at " + user.Url);
-
-            //listBox2.Items.Add(user.Login);
+           
             listBox2.Items.Add("Name " +  user.Name);
             listBox2.Items.Add("Email " + user.Email);
-            //var repository = await github.Repository.Get("onwer", "user");
-            //var repository = await client.Repository.Get("octokit", "octokit.net");
-            //MessageBox.Show(repository.Name);
+        }
+
+
+        private async void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            foreach (var rep in repositories)
+            {
+                if (listBox1.SelectedItem.ToString() == "Name " + rep.Name)
+                {
+                    var commits = await client.Repository.Commits.GetAll(rep.Owner.Login, rep.Name);
+
+                    listBox3.Items.Add(rep.Name);
+
+                    var s = rep.Url;
+                    foreach (var c in commits)
+                    {
+                        listBox3.Items.Add(c.Committer.Login + " " + c.Commit.Author.Date.ToString());
+                        listBox3.Items.Add(c.Commit.Message);
+
+                    }
+                    listBox3.Items.Add("");
+                }
+                
+            } 
         }
     }
 }
